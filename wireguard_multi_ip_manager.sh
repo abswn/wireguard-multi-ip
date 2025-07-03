@@ -134,8 +134,7 @@ EOF
         echo "✅ WireGuard service restarted to apply new configuration."
     fi
 
-    echo "✅ WireGuard server will listen on UDP port ${server_port}"
-    echo "📣 Make sure to open UDP port ${server_port} in your firewall."
+    echo "✅ WireGuard server will listen on UDP port ${server_port}. Make sure to open it in your firewall."
     echo "🎉 Initial setup complete! Your WireGuard server is running."
 }
 
