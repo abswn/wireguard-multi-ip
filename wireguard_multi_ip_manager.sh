@@ -36,16 +36,12 @@ function install_dependencies() {
 }
 
 function get_next_client_ip() {
-    local base_network="10.0."
+    # Generates the next client IP in the range 10.126.0.1 to 10.126.255.254
+    local base_network="10.126."
     local last_ip_str
     
-    # Grep for all server and client IPs (e.g., 10.0.x.y) and find the highest one
+    # Grep for all server and client IPs (e.g., 10.126.x.y) and find the highest one
     last_ip_str=$(grep -oE "${base_network}[0-9]+\.[0-9]+" "$SERVER_CONFIG" | sort -t '.' -k 3,3n -k 4,4n | tail -1)
-
-    if [ -z "$last_ip_str" ]; then
-        # This should not happen after initial setup, but as a fallback.
-        last_ip_str="10.0.0.1"
-    fi
 
     # Break the last IP into its 3rd and 4th octets
     local octet3 octet4
@@ -58,7 +54,7 @@ function get_next_client_ip() {
         octet4=1
         octet3=$((octet3 + 1))
         if [ "$octet3" -gt 255 ]; then
-            echo "ERROR: IP address range (10.0.0.0/16) has been exhausted!" >&2
+            echo "ERROR: IP address range (10.126.0.0/16) has been exhausted!" >&2
             exit 1
         fi
     fi
@@ -112,7 +108,7 @@ function initial_setup() {
 
     cat > "$SERVER_CONFIG" <<-EOF
 [Interface]
-Address = 10.0.0.1/16
+Address = 10.126.0.1/16
 SaveConfig = false
 PrivateKey = ${server_private_key}
 ListenPort = ${server_port}
@@ -179,7 +175,7 @@ function add_public_ip() {
     echo "${public_ip} ${private_ip} ${interface}" >> "$IP_MAPPING_FILE"
 
     # Add the SNAT rule to iptables
-    local rule="POSTROUTING -s 10.0.0.0/16 -o ${interface} -j SNAT --to-source ${private_ip}"
+    local rule="POSTROUTING -s 10.126.0.0/16 -o ${interface} -j SNAT --to-source ${private_ip}"
     iptables -t nat -C ${rule} &>/dev/null || iptables -t nat -A ${rule}
 
     # Save iptables rules
@@ -219,7 +215,7 @@ function delete_public_ip() {
     interface=$(echo "$ip_to_delete" | cut -d' ' -f3)
 
     # Remove iptables rule
-    local rule="POSTROUTING -s 10.0.0.0/16 -o ${interface} -j SNAT --to-source ${private_ip}"
+    local rule="POSTROUTING -s 10.126.0.0/16 -o ${interface} -j SNAT --to-source ${private_ip}"
     iptables -t nat -D ${rule}
     iptables-save > /etc/iptables/rules.v4
     systemctl restart netfilter-persistent
@@ -417,7 +413,7 @@ function clean_setup() {
     echo "🧹 Removing iptables NAT rules..."
     if [[ -f "$IP_MAPPING_FILE" ]]; then
         while read -r _ private_ip interface; do
-            iptables -t nat -D POSTROUTING -s 10.0.0.0/16 -o "$interface" -j SNAT --to-source "$private_ip" 2>/dev/null || true
+            iptables -t nat -D POSTROUTING -s 10.126.0.0/16 -o "$interface" -j SNAT --to-source "$private_ip" 2>/dev/null || true
         done < "$IP_MAPPING_FILE"
     fi
     iptables-save > /etc/iptables/rules.v4
