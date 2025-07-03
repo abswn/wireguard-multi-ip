@@ -417,11 +417,11 @@ function show_clients() {
     echo "-----------------------------------------------------------------------------------------------------"
 }
 
-function clean_setup() {
+function uninstall_wireguard() {
     echo "⚠️ This will completely remove all WireGuard configs, clients, NAT rules, and uninstall packages!"
     read -rp "Are you sure you want to continue? Type 'yes' to confirm: " confirm
     if [[ "$confirm" != "yes" ]]; then
-        echo "❌ Cleanup cancelled."
+        echo "❌ Uninstallation cancelled."
         return
     fi
 
@@ -452,7 +452,7 @@ function clean_setup() {
     apt-get remove --purge -y wireguard qrencode
     apt-get clean
 
-    echo "✅ Cleanup complete. System is restored to pre-script state."
+    echo "✅ Uninstallation complete. System is restored to pre-script state."
 }
 
 # --- Main Menu ---
@@ -479,7 +479,7 @@ function main_menu() {
     echo -e "║${GREEN} 4)${NC} Add VPN Client                          ${BLUE}║"
     echo -e "║${GREEN} 5)${NC} Delete VPN Client                       ${BLUE}║"
     echo -e "║${GREEN} 6)${NC} Show VPN Clients                        ${BLUE}║"
-    echo -e "║${GREEN} 7)${RED} Clean/Reset Everything${NC}                  ${BLUE}║"
+    echo -e "║${GREEN} 7)${RED} Uninstall Everything${NC}                  ${BLUE}║"
     echo -e "║${GREEN} 8)${NC} Exit                                    ${BLUE}║"
     echo -e "╚════════════════════════════════════════════╝${NC}"
     echo ""
@@ -492,7 +492,7 @@ function main_menu() {
         4) add_client ;;
         5) delete_client ;;
         6) show_clients ;;
-        7) clean_setup ;;
+        7) uninstall_wireguard ;;
         8) exit 0 ;;
         *) echo -e "${RED}❌ Invalid option: $reply${NC}" ;;
     esac
