@@ -213,16 +213,7 @@ function add_public_ip() {
     # Add the IP to the mappings file
     echo "${public_ip} ${private_ip} ${interface}" >> "$IP_MAPPING_FILE"
 
-    # Add the SNAT rule to iptables
-    local rule="POSTROUTING -s 10.126.0.0/16 -o ${interface} -j SNAT --to-source ${private_ip}"
-    iptables -t nat -C ${rule} &>/dev/null || iptables -t nat -A ${rule}
-
-    # Save iptables rules
-    mkdir -p /etc/iptables
-    iptables-save > /etc/iptables/rules.v4
-    systemctl restart netfilter-persistent
-
-    echo "✅ Public IP ${public_ip} added and NAT rule configured."
+    echo "✅ Public IP ${public_ip} added."
 }
 
 function delete_public_ip() {
@@ -248,15 +239,6 @@ function delete_public_ip() {
 
     local public_ip private_ip interface
     public_ip=$(echo "$ip_to_delete" | cut -d' ' -f1)
-    private_ip=$(echo "$ip_to_delete" | cut -d' ' -f2)
-    interface=$(echo "$ip_to_delete" | cut -d' ' -f3)
-
-    # Remove iptables rule
-    local rule="POSTROUTING -s 10.126.0.0/16 -o ${interface} -j SNAT --to-source ${private_ip}"
-    iptables -t nat -D ${rule}
-    mkdir -p /etc/iptables
-    iptables-save > /etc/iptables/rules.v4
-    systemctl restart netfilter-persistent
 
     # Remove from mappings file
     awk -v ip="$public_ip" '$1 != ip' "$IP_MAPPING_FILE" > "${IP_MAPPING_FILE}.tmp" && mv "${IP_MAPPING_FILE}.tmp" "$IP_MAPPING_FILE"
@@ -342,6 +324,21 @@ AllowedIPs = 0.0.0.0/0, ::/0
 PersistentKeepalive = 25
 EOF
 
+    # Add the SNAT rules to iptables
+    local interface
+    local private_ip
+    interface=$(awk -v ip="$endpoint_ip" '$1 == ip {print $3}' "$IP_MAPPING_FILE")
+    private_ip=$(awk -v ip="$endpoint_ip" '$1 == ip {print $2}' "$IP_MAPPING_FILE")
+    
+    if ! iptables -t nat -C POSTROUTING -s "${client_vpn_ip}/32" -o "$interface" -j SNAT --to-source "$private_ip" 2>/dev/null; then
+        iptables -t nat -A POSTROUTING -s "${client_vpn_ip}/32" -o "$interface" -j SNAT --to-source "$private_ip"
+    fi
+
+    # Save iptables rules
+    mkdir -p /etc/iptables
+    iptables-save > /etc/iptables/rules.v4
+    systemctl restart netfilter-persistent
+
     # Sync changes with running interface
     wg set wg0 peer "${client_public_key}" allowed-ips "${client_vpn_ip}/32"
 
@@ -378,6 +375,20 @@ function delete_client() {
     if [ -z "$client_name" ]; then
         echo "❌ Invalid selection."
         return
+    fi
+
+    # Remove iptables rule
+    local client_vpn_ip interface private_ip endpoint_ip
+    client_vpn_ip=$(grep '^Address' "${CLIENT_DIR}/${client_name}/${client_name}.conf" | awk '{print $3}' | cut -d'/' -f1)
+    endpoint_ip=$(grep '^Endpoint' "${CLIENT_DIR}/${client_name}/${client_name}.conf" | awk '{print $3}' | cut -d':' -f1)
+    interface=$(awk -v ip="$endpoint_ip" '$1 == ip {print $3}' "$IP_MAPPING_FILE")
+    private_ip=$(awk -v ip="$endpoint_ip" '$1 == ip {print $2}' "$IP_MAPPING_FILE")
+
+    if [ -n "$client_vpn_ip" ] && [ -n "$interface" ] && [ -n "$private_ip" ]; then
+        iptables -t nat -D POSTROUTING -s "${client_vpn_ip}/32" -o "$interface" -j SNAT --to-source "$private_ip" 2>/dev/null || true
+        mkdir -p /etc/iptables
+        iptables-save > /etc/iptables/rules.v4
+        systemctl restart netfilter-persistent
     fi
 
     local client_public_key
@@ -454,12 +465,24 @@ function uninstall_wireguard() {
     systemctl stop wg-quick@wg0 2>/dev/null || true
     systemctl disable wg-quick@wg0 2>/dev/null || true
 
-    echo "🧹 Removing iptables NAT rules..."
-    if [[ -f "$IP_MAPPING_FILE" ]]; then
-        while read -r _ private_ip interface; do
-            iptables -t nat -D POSTROUTING -s 10.126.0.0/16 -o "$interface" -j SNAT --to-source "$private_ip" 2>/dev/null || true
-        done < "$IP_MAPPING_FILE"
+    echo "🧹 Removing iptables NAT rules for all clients..."
+    if [ -d "$CLIENT_DIR" ]; then
+        for client_dir in "$CLIENT_DIR"/*; do
+            [ -d "$client_dir" ] || continue
+            client_name=$(basename "$client_dir")
+            conf="${client_dir}/${client_name}.conf"
+            if [ -f "$conf" ]; then
+                client_vpn_ip=$(grep '^Address' "$conf" | awk '{print $3}' | cut -d'/' -f1)
+                endpoint_ip=$(grep '^Endpoint' "$conf" | awk '{print $3}' | cut -d':' -f1)
+                interface=$(awk -v ip="$endpoint_ip" '$1 == ip {print $3}' "$IP_MAPPING_FILE")
+                private_ip=$(awk -v ip="$endpoint_ip" '$1 == ip {print $2}' "$IP_MAPPING_FILE")
+                if [ -n "$client_vpn_ip" ] && [ -n "$interface" ] && [ -n "$private_ip" ]; then
+                    iptables -t nat -D POSTROUTING -s "${client_vpn_ip}/32" -o "$interface" -j SNAT --to-source "$private_ip" 2>/dev/null || true
+                fi
+            fi
+        done
     fi
+    
     mkdir -p /etc/iptables
     iptables-save > /etc/iptables/rules.v4
     systemctl restart netfilter-persistent 2>/dev/null || true
