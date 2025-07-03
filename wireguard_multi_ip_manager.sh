@@ -75,6 +75,11 @@ function initial_setup() {
     mkdir -p "$CONFIG_DIR" "$CLIENT_DIR"
     touch "$IP_MAPPING_FILE"
 
+    # Prompt for WireGuard port
+    read -rp "Enter WireGuard port [default: 51820]: " server_port
+    server_port=${server_port:-51820}
+    echo "$server_port" > "${CONFIG_DIR}/server_port"
+
     # Generate Server Keys
     if [ ! -f "${CONFIG_DIR}/server_private.key" ]; then
         echo "🔑 Generating server keys..."
@@ -110,7 +115,7 @@ function initial_setup() {
 Address = 10.0.0.1/16
 SaveConfig = false
 PrivateKey = ${server_private_key}
-ListenPort = 51820
+ListenPort = ${server_port}
 EOF
     echo "✅ Server configuration file created at ${SERVER_CONFIG}"
 
@@ -129,6 +134,8 @@ EOF
         echo "✅ WireGuard service restarted to apply new configuration."
     fi
 
+    echo "✅ WireGuard server will listen on UDP port ${server_port}"
+    echo "📣 Make sure to open UDP port ${server_port} in your firewall."
     echo "🎉 Initial setup complete! Your WireGuard server is running."
 }
 
@@ -276,8 +283,10 @@ function add_client() {
     client_private_key=$(cat "${CLIENT_DIR}/${client_name}/${client_name}.private")
     client_public_key=$(cat "${CLIENT_DIR}/${client_name}/${client_name}.public")
     server_public_key=$(cat "${CONFIG_DIR}/server_public.key")
+    server_port=$(cat "${CONFIG_DIR}/server_port")
     local client_vpn_ip
     client_vpn_ip=$(get_next_client_ip)
+    local server_port
 
     # Add peer to server config
     cat >> "$SERVER_CONFIG" <<-EOF
@@ -297,7 +306,7 @@ DNS = ${dns_servers}
 
 [Peer]
 PublicKey = ${server_public_key}
-Endpoint = ${endpoint_ip}:51820
+Endpoint = ${endpoint_ip}:${server_port}
 AllowedIPs = 0.0.0.0/0, ::/0
 PersistentKeepalive = 25
 EOF
