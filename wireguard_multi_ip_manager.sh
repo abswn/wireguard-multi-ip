@@ -66,6 +66,21 @@ function get_next_client_ip() {
     echo "${base_network}${octet3}.${octet4}"
 }
 
+function show_wg_status() {
+    local interfaces
+    interfaces=$(wg show interfaces)
+
+    if [ -z "$interfaces" ]; then
+        echo "🔴 No active WireGuard interface found"
+    else
+        for iface in $interfaces; do
+            local port
+            port=$(wg show "$iface" | grep 'listening port' | awk '{print $3}')
+            echo "🟢 $iface is UP (Listening on port $port)"
+        done
+    fi
+}
+
 # --- Initial Setup ---
 
 function initial_setup() {
@@ -427,6 +442,8 @@ function show_clients() {
     echo "-----------------------------------------------------------------------------------------------------"
 }
 
+# --- Maintenance Functions ---
+
 function uninstall_wireguard() {
     echo "⚠️ This will completely remove all WireGuard configs, clients, NAT rules, and uninstall packages!"
     read -rp "Are you sure you want to continue? Type 'yes' to confirm: " confirm
@@ -492,6 +509,7 @@ function main_menu() {
     echo -e "║${GREEN} 7)${RED} Uninstall Everything${NC}                  ${BLUE}║"
     echo -e "║${GREEN} 8)${NC} Exit                                    ${BLUE}║"
     echo -e "╚════════════════════════════════════════════╝${NC}"
+    show_wg_status
     echo ""
 
     read -rp "Enter your choice [1-8]: " reply
