@@ -98,9 +98,19 @@ function initial_setup() {
 
     # Add the first public IP
     echo "--------------------------------------------------"
-    echo "You need to add your first public IP information."
+    echo "Detecting and adding the first public IP."
     echo "--------------------------------------------------"
-    add_public_ip
+    AUTO_INTERFACE=$(ip route get 1.1.1.1 | awk '{for(i=1;i<=NF;i++) if ($i=="dev") print $(i+1)}')
+    AUTO_PRIVATE_IP=$(ip route get 1.1.1.1 | awk '{for(i=1;i<=NF;i++) if ($i=="src") print $(i+1)}')
+    AUTO_PUBLIC_IP=$(curl -s ifconfig.me || curl -s ipinfo.io/ip)
+
+    if [[ -n "$AUTO_PUBLIC_IP" && -n "$AUTO_PRIVATE_IP" && -n "$AUTO_INTERFACE" ]]; then
+        add_public_ip
+        unset AUTO_PUBLIC_IP AUTO_PRIVATE_IP AUTO_INTERFACE
+    else
+        echo "❌ Auto-detection failed. Please add first public IP manually."
+        add_public_ip
+    fi
 
     # Create server config
     local server_private_key
@@ -141,9 +151,17 @@ EOF
 function add_public_ip() {
     echo "➕ Adding a new Public IP..."
     local public_ip private_ip interface
-    read -rp "Enter Public IP: " public_ip
-    read -rp "Enter corresponding Private IP (from 'ip a'): " private_ip
-    read -rp "Enter the main network interface name (default: eth0): " interface
+
+    if [ -n "$AUTO_PUBLIC_IP" ] && [ -n "$AUTO_PRIVATE_IP" ] && [ -n "$AUTO_INTERFACE" ]; then
+        public_ip="$AUTO_PUBLIC_IP"
+        private_ip="$AUTO_PRIVATE_IP"
+        interface="$AUTO_INTERFACE"
+        echo "⚙️ Auto-adding public IP: $public_ip via $interface ($private_ip)"
+    else
+        read -rp "Enter Public IP: " public_ip
+        read -rp "Enter corresponding Private IP (from 'ip a'): " private_ip
+        read -rp "Enter the main network interface name (default: eth0): " interface
+    fi
 
     # Trim extra spaces
     public_ip=$(echo "$public_ip" | xargs)
@@ -181,6 +199,7 @@ function add_public_ip() {
     iptables -t nat -C ${rule} &>/dev/null || iptables -t nat -A ${rule}
 
     # Save iptables rules
+    mkdir -p /etc/iptables
     iptables-save > /etc/iptables/rules.v4
     systemctl restart netfilter-persistent
 
@@ -216,6 +235,7 @@ function delete_public_ip() {
     # Remove iptables rule
     local rule="POSTROUTING -s 10.126.0.0/16 -o ${interface} -j SNAT --to-source ${private_ip}"
     iptables -t nat -D ${rule}
+    mkdir -p /etc/iptables
     iptables-save > /etc/iptables/rules.v4
     systemctl restart netfilter-persistent
 
@@ -415,6 +435,7 @@ function clean_setup() {
             iptables -t nat -D POSTROUTING -s 10.126.0.0/16 -o "$interface" -j SNAT --to-source "$private_ip" 2>/dev/null || true
         done < "$IP_MAPPING_FILE"
     fi
+    mkdir -p /etc/iptables
     iptables-save > /etc/iptables/rules.v4
     systemctl restart netfilter-persistent 2>/dev/null || true
 
