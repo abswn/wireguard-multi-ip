@@ -334,7 +334,15 @@ EOF
     echo "📱 Scan this QR code with the WireGuard mobile app:"
     qrencode -t ansiutf8 < "${CLIENT_DIR}/${client_name}/${client_name}.conf"
     echo "--------------------------------------------------"
-    echo "Or find the config file at: ${CLIENT_DIR}/${client_name}/${client_name}.conf"
+    echo "Or find the config file and QR code at: ${CLIENT_DIR}/${client_name}/${client_name}.conf"
+
+    # Save a copy of the config and QR code to user's home
+    LOGIN_USER=$(logname)
+    DEST_DIR=$(eval echo "~$(logname)/wireguard_clients/${client_name}")
+    mkdir -p "$DEST_DIR"
+    cp -r "${CLIENT_DIR}/${client_name}/" "$DEST_DIR"
+    qrencode -o "${DEST_DIR}/${client_name}_qrcode.png" < "${CLIENT_DIR}/${client_name}/${client_name}.conf"
+    chown -R "${LOGIN_USER}:${LOGIN_USER}" "$DEST_DIR"
 }
 
 function delete_client() {
