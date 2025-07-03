@@ -14,6 +14,8 @@ CONFIG_DIR="/etc/wireguard"
 SERVER_CONFIG="${CONFIG_DIR}/wg0.conf"
 IP_MAPPING_FILE="${CONFIG_DIR}/ip_mappings.conf"
 CLIENT_DIR="${CONFIG_DIR}/clients"
+LOGIN_USER=$(logname)
+DEST_DIR=$(eval echo "~$LOGIN_USER/wireguard_clients")
 
 # --- Utility Functions ---
 
@@ -354,8 +356,6 @@ EOF
     echo "Or find the config file and QR code at: ${CLIENT_DIR}/${client_name}/ directory"
 
     # Save a copy of the config and QR code to user's home
-    LOGIN_USER=$(logname)
-    DEST_DIR=$(eval echo "~$(logname)/wireguard_clients/")
     mkdir -p "$DEST_DIR"
     cp -r "${CLIENT_DIR}/${client_name}" "$DEST_DIR"
     qrencode -o "${DEST_DIR}/${client_name}/${client_name}_qrcode.png" < "${CLIENT_DIR}/${client_name}/${client_name}.conf"
@@ -396,6 +396,7 @@ function delete_client() {
 
     # Delete client directory
     rm -rf "${CLIENT_DIR}/${client_name}"
+    rm -rf "${DEST_DIR}/${client_name}"
 
     echo "✅ Client '${client_name}' has been deleted."
 }
@@ -468,6 +469,7 @@ function uninstall_wireguard() {
 
     echo "🗑️ Removing WireGuard configuration and keys..."
     rm -rf "$CLIENT_DIR"
+    rm -rf "$DEST_DIR"
     rm -f "$IP_MAPPING_FILE" "$SERVER_CONFIG"
     rm -f "${CONFIG_DIR}/server_private.key" "${CONFIG_DIR}/server_public.key"
 
