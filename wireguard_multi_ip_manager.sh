@@ -500,12 +500,12 @@ function main_menu() {
     echo -e "${BLUE}╔════════════════════════════════════════════╗"
     echo -e "║        ${CYAN}WireGuard Multi-IP VPN Manager${BLUE}      ║"
     echo -e "╠════════════════════════════════════════════╣"
-    echo -e "║${GREEN} 1)${NC} Add Public IP                           ${BLUE}║"
-    echo -e "║${GREEN} 2)${NC} Delete Public IP                        ${BLUE}║"
-    echo -e "║${GREEN} 3)${NC} Show Public IPs                         ${BLUE}║"
-    echo -e "║${GREEN} 4)${NC} Add VPN Client                          ${BLUE}║"
-    echo -e "║${GREEN} 5)${NC} Delete VPN Client                       ${BLUE}║"
-    echo -e "║${GREEN} 6)${NC} Show VPN Clients                        ${BLUE}║"
+    echo -e "║${GREEN} 1)${NC} Add VPN Client                          ${BLUE}║"
+    echo -e "║${GREEN} 2)${NC} Show VPN Clients                        ${BLUE}║"
+    echo -e "║${GREEN} 3)${NC} Delete VPN Client                       ${BLUE}║"
+    echo -e "║${GREEN} 4)${NC} Add Public IP                           ${BLUE}║"
+    echo -e "║${GREEN} 5)${NC} Show Public IPs                         ${BLUE}║"
+    echo -e "║${GREEN} 6)${NC} Delete Public IP                        ${BLUE}║"
     echo -e "║${GREEN} 7)${RED} Uninstall Everything${NC}                  ${BLUE}║"
     echo -e "║${GREEN} 8)${NC} Exit                                    ${BLUE}║"
     echo -e "╚════════════════════════════════════════════╝${NC}"
@@ -514,12 +514,12 @@ function main_menu() {
 
     read -rp "Enter your choice [1-8]: " reply
     case $reply in
-        1) add_public_ip ;;
-        2) delete_public_ip ;;
-        3) show_public_ips ;;
-        4) add_client ;;
-        5) delete_client ;;
-        6) show_clients ;;
+        1) add_client ;;
+        2) show_clients ;;
+        3) delete_client ;;
+        4) add_public_ip ;;
+        5) show_public_ips ;;
+        6) delete_public_ip ;;
         7) uninstall_wireguard ;;
         8) exit 0 ;;
         *) echo -e "${RED}❌ Invalid option: $reply${NC}" ;;
