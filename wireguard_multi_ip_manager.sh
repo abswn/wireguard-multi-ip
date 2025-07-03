@@ -317,10 +317,10 @@ function add_client() {
     client_private_key=$(cat "${CLIENT_DIR}/${client_name}/${client_name}.private")
     client_public_key=$(cat "${CLIENT_DIR}/${client_name}/${client_name}.public")
     server_public_key=$(cat "${CONFIG_DIR}/server_public.key")
+    local server_port
     server_port=$(cat "${CONFIG_DIR}/server_port")
     local client_vpn_ip
     client_vpn_ip=$(get_next_client_ip)
-    local server_port
 
     # Add peer to server config
     cat >> "$SERVER_CONFIG" <<-EOF
