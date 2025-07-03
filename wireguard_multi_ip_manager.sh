@@ -28,7 +28,7 @@ function install_dependencies() {
     echo "▶️ Installing required packages (wireguard, qrencode)..."
     if ! command -v wg &> /dev/null; then
         apt-get update
-        apt-get install -y wireguard qrencode #resolvconf
+        apt-get install -y wireguard qrencode
         echo "✅ Dependencies installed."
     else
         echo "✅ Dependencies are already installed."
@@ -65,7 +65,6 @@ function get_next_client_ip() {
 
     echo "${base_network}${octet3}.${octet4}"
 }
-
 
 # --- Initial Setup ---
 
@@ -132,7 +131,6 @@ EOF
 
     echo "🎉 Initial setup complete! Your WireGuard server is running."
 }
-
 
 # --- IP Management Functions ---
 
@@ -249,7 +247,7 @@ function add_client() {
     fi
 
     local client_name
-    read -rp "Enter client name (no spaces, e.g., 'johns_laptop'): " client_name
+    read -rp "Enter client name (no spaces, e.g., 'work_laptop'): " client_name
     client_name=$(echo "$client_name" | xargs)
 
     if [ -d "${CLIENT_DIR}/${client_name}" ]; then
@@ -266,6 +264,11 @@ function add_client() {
             echo "Invalid selection."
         fi
     done
+
+    # Detect DNS from server's current config
+    detected_dns=$(grep -m1 '^nameserver' /etc/resolv.conf | awk '{print $2}')
+    read -rp "Enter comma separated DNS server(s) to use [default: $detected_dns]: " dns_servers
+    dns_servers="${dns_servers:-$detected_dns}"
 
     mkdir -p "${CLIENT_DIR}/${client_name}"
     wg genkey | tee "${CLIENT_DIR}/${client_name}/${client_name}.private" | wg pubkey > "${CLIENT_DIR}/${client_name}/${client_name}.public"
@@ -290,7 +293,7 @@ EOF
 [Interface]
 PrivateKey = ${client_private_key}
 Address = ${client_vpn_ip}/32
-DNS = 1.1.1.1, 1.0.0.1
+DNS = ${dns_servers}
 
 [Peer]
 PublicKey = ${server_public_key}
@@ -309,7 +312,6 @@ EOF
     echo "--------------------------------------------------"
     echo "Or find the config file at: ${CLIENT_DIR}/${client_name}/${client_name}.conf"
 }
-
 
 function delete_client() {
     echo "➖ Deleting a VPN client..."
@@ -397,7 +399,7 @@ function clean_setup() {
     sysctl -w net.ipv4.ip_forward=0
 
     echo "🧼 Removing WireGuard and dependencies..."
-    apt-get remove --purge -y wireguard qrencode iptables-persistent # resolvconf
+    apt-get remove --purge -y wireguard qrencode iptables-persistent
     apt-get autoremove -y
     apt-get clean
 
