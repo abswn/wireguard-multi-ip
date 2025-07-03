@@ -236,11 +236,11 @@ function show_public_ips() {
         echo "ℹ️ No public IPs configured yet."
         return
     fi
-    echo "--------------------------------------------------"
+    echo "------------------------------------------------"
     echo "Public IP       | Private IP      | Interface"
-    echo "--------------------------------------------------"
+    echo "------------------------------------------------"
     awk '{printf "%-15s | %-15s | %s\n", $1, $2, $3}' "$IP_MAPPING_FILE"
-    echo "--------------------------------------------------"
+    echo "------------------------------------------------"
 }
 
 # --- Client Management Functions ---
@@ -361,20 +361,45 @@ function delete_client() {
 }
 
 function show_clients() {
-    echo "👥 Configured Clients:"
-    if [ ! -d "$CLIENT_DIR" ] || [ -z "$(ls -A $CLIENT_DIR)" ]; then
+    echo "👥 Configured VPN Clients:"
+    if [ ! -d "$CLIENT_DIR" ] || [ -z "$(ls -A "$CLIENT_DIR")" ]; then
         echo "ℹ️ No clients configured yet."
         return
     fi
-    
-    echo "--------------------------------------------------"
-    grep -E "^# Client:" "$SERVER_CONFIG" | cut -d' ' -f3
-    echo "--------------------------------------------------"
-    
-    echo "Active connections:"
-    echo "--------------------------------------------------"
-    wg show wg0
-    echo "--------------------------------------------------"
+
+    echo "-----------------------------------------------------------------------------------------------------"
+    printf "%-20s | %-15s | %-22s | %-22s | %s\n" "Client" "VPN IP" "Endpoint" "Last Handshake" "RX / TX"
+    echo "-----------------------------------------------------------------------------------------------------"
+
+    declare -a rows
+
+    for client_dir in "$CLIENT_DIR"/*; do
+        client_name=$(basename "$client_dir")
+        conf="${client_dir}/${client_name}.conf"
+        public_key=$(cat "${client_dir}/${client_name}.public")
+        vpn_ip=$(grep '^Address' "$conf" | awk '{print $3}')
+        endpoint=$(grep '^Endpoint' "$conf" | awk '{print $3}')
+        
+        handshake=$(wg show wg0 latest-handshakes | grep "$public_key" | awk '{print $2}')
+        if [[ "$handshake" == "0" ]]; then
+            handshake_str="Never"
+            sort_key=0
+        else
+            handshake_str=$(date -d @"$handshake" "+%Y-%m-%d %H:%M:%S")
+            sort_key=$handshake
+        fi
+
+        rx=$(wg show wg0 transfer | grep "$public_key" | awk '{print $2}')
+        tx=$(wg show wg0 transfer | grep "$public_key" | awk '{print $3}')
+
+        hr_rx=$(numfmt --to=iec --suffix=B "$rx" 2>/dev/null || echo "${rx}B")
+        hr_tx=$(numfmt --to=iec --suffix=B "$tx" 2>/dev/null || echo "${tx}B")
+
+        rows+=("$sort_key|$(printf "%-20s | %-15s | %-22s | %-22s | %s" "$client_name" "$vpn_ip" "$endpoint" "$handshake_str" "${hr_rx} / ${hr_tx}")")
+    done
+
+    printf "%s\n" "${rows[@]}" | sort -t'|' -k1,1nr | cut -d'|' -f2-
+    echo "-----------------------------------------------------------------------------------------------------"
 }
 
 function clean_setup() {
