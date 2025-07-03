@@ -508,7 +508,7 @@ function main_menu() {
     echo -e "║${GREEN} 4)${NC} Add Public IP                           ${BLUE}║"
     echo -e "║${GREEN} 5)${NC} Show Public IPs                         ${BLUE}║"
     echo -e "║${GREEN} 6)${NC} Delete Public IP                        ${BLUE}║"
-    echo -e "║${GREEN} 7)${RED} Uninstall Everything${NC}                  ${BLUE}║"
+    echo -e "║${GREEN} 7)${RED} Uninstall Everything${NC}                    ${BLUE}║"
     echo -e "║${GREEN} 8)${NC} Exit                                    ${BLUE}║"
     echo -e "╚════════════════════════════════════════════╝${NC}"
     show_wg_status
