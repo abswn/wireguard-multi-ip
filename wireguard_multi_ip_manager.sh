@@ -25,16 +25,18 @@ function is_root() {
 }
 
 function install_dependencies() {
-    echo "▶️ Installing required packages (wireguard, qrencode)..."
+    echo "▶️ Installing required packages (wireguard, qrencode, iptables-persistent)..."
+    apt-get update
     if ! command -v wg &> /dev/null; then
-        apt-get update
         apt-get install -y wireguard
-        apt-get install -y qrencode
-        apt-get install -y iptables-persistent
-        echo "✅ Dependencies installed."
-    else
-        echo "✅ Dependencies are already installed."
     fi
+    if ! command -v qrencode &> /dev/null; then
+        apt-get install -y qrencode
+    fi
+    if ! dpkg -s iptables-persistent &> /dev/null; then
+        apt-get install -y iptables-persistent
+    fi
+    echo "✅ Dependencies checked and installed as needed."
 }
 
 function get_next_client_ip() {
