@@ -28,7 +28,9 @@ function install_dependencies() {
     echo "▶️ Installing required packages (wireguard, qrencode)..."
     if ! command -v wg &> /dev/null; then
         apt-get update
-        apt-get install -y wireguard qrencode
+        apt-get install -y wireguard
+        apt-get install -y qrencode
+        apt-get install -y iptables-persistent
         echo "✅ Dependencies installed."
     else
         echo "✅ Dependencies are already installed."
@@ -179,9 +181,6 @@ function add_public_ip() {
     iptables -t nat -C ${rule} &>/dev/null || iptables -t nat -A ${rule}
 
     # Save iptables rules
-    if ! command -v iptables-persistent &> /dev/null; then
-        apt-get update && apt-get install -y iptables-persistent
-    fi
     iptables-save > /etc/iptables/rules.v4
     systemctl restart netfilter-persistent
 
