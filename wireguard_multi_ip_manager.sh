@@ -146,7 +146,7 @@ function add_public_ip() {
     local public_ip private_ip interface
     read -rp "Enter Public IP: " public_ip
     read -rp "Enter corresponding Private IP (from 'ip a'): " private_ip
-    read -rp "Enter the main network interface name (e.g., eth0): " interface
+    read -rp "Enter the main network interface name (default: eth0): " interface
 
     # Trim extra spaces
     public_ip=$(echo "$public_ip" | xargs)
