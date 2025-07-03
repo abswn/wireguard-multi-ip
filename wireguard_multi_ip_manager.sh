@@ -410,7 +410,6 @@ function clean_setup() {
 
     echo "🧼 Removing WireGuard and dependencies..."
     apt-get remove --purge -y wireguard qrencode iptables-persistent
-    apt-get autoremove -y
     apt-get clean
 
     echo "✅ Cleanup complete. System is restored to pre-script state."
