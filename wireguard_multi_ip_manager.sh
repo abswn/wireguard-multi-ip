@@ -273,9 +273,10 @@ function add_client() {
     done
 
     # Detect DNS from server's current config
-    detected_dns=$(grep -m1 '^nameserver' /etc/resolv.conf | awk '{print $2}')
-    read -rp "Enter comma separated DNS server(s) to use [default: $detected_dns]: " dns_servers
-    dns_servers="${dns_servers:-$detected_dns}"
+    suggested_dns=$(grep -m1 '^nameserver' /etc/resolv.conf | awk '{print $2}')
+    suggested_dns=${suggested_dns:-"1.1.1.1,1.0.0.1"}
+    read -rp "Enter comma separated DNS server(s) to use [default: $suggested_dns]: " dns_servers
+    dns_servers="${dns_servers:-$suggested_dns}"
 
     mkdir -p "${CLIENT_DIR}/${client_name}"
     wg genkey | tee "${CLIENT_DIR}/${client_name}/${client_name}.private" | wg pubkey > "${CLIENT_DIR}/${client_name}/${client_name}.public"
