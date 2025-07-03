@@ -449,7 +449,7 @@ function clean_setup() {
     sysctl -w net.ipv4.ip_forward=0
 
     echo "🧼 Removing WireGuard and dependencies..."
-    apt-get remove --purge -y wireguard qrencode iptables-persistent
+    apt-get remove --purge -y wireguard qrencode
     apt-get clean
 
     echo "✅ Cleanup complete. System is restored to pre-script state."
