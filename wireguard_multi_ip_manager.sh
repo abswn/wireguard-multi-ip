@@ -317,6 +317,11 @@ PrivateKey = ${client_private_key}
 Address = ${client_vpn_ip}/32
 DNS = ${dns_servers}
 
+# To avoid routing responses to incoming requests (i.e SSH, HTTP, etc.) through the VPN,
+# replace the example below with your real network's private IP or subnet in CIDR format
+# PostUp = ip rule add from 10.0.0.0/24 table main
+# PreDown = ip rule del from 10.0.0.0/24 table main
+
 [Peer]
 PublicKey = ${server_public_key}
 Endpoint = ${endpoint_ip}:${server_port}
