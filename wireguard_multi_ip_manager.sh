@@ -68,6 +68,26 @@ function get_next_client_ip() {
     echo "${base_network}${octet3}.${octet4}"
 }
 
+function set_client_isolation() {
+    read -rp "🔒 Prevent clients from seeing each other? (recommended) [y/n, default: y]: " choice
+    choice=${choice,,} # lower case
+    choice=${choice:-y}
+
+    if [[ "$choice" == "n" || "$choice" == "no" ]]; then
+        echo "⚠️ Client-to-client communication will be allowed."
+        iptables -D FORWARD -i wg0 -o wg0 -s 10.126.0.0/16 -d 10.126.0.0/16 -j DROP 2>/dev/null || true
+    else
+        echo "🔒 Enabling client isolation (blocking wg0 to wg0 forwarding)..."
+        iptables -C FORWARD -i wg0 -o wg0 -s 10.126.0.0/16 -d 10.126.0.0/16 -j DROP 2>/dev/null || \
+        iptables -I FORWARD -i wg0 -o wg0 -s 10.126.0.0/16 -d 10.126.0.0/16 -j DROP
+    fi
+
+    # Save iptables rules
+    mkdir -p /etc/iptables
+    iptables-save > /etc/iptables/rules.v4
+    systemctl restart netfilter-persistent
+}
+
 function show_wg_status() {
     local interfaces
     interfaces=$(wg show interfaces)
@@ -471,6 +491,10 @@ function uninstall_wireguard() {
     systemctl disable wg-quick@wg0 2>/dev/null || true
 
     echo "🧹 Removing iptables NAT rules for all clients..."
+    # Remove client-to-client isolation rule if it exists
+    iptables -D FORWARD -i wg0 -o wg0 -s 10.126.0.0/16 -d 10.126.0.0/16 -j DROP 2>/dev/null || true
+
+    # Remove SNAT rules for the clients
     if [ -d "$CLIENT_DIR" ]; then
         for client_dir in "$CLIENT_DIR"/*; do
             [ -d "$client_dir" ] || continue
@@ -515,6 +539,7 @@ function main_menu() {
     is_root
     if [ ! -f "$SERVER_CONFIG" ]; then
         initial_setup
+        set_client_isolation
     fi
 
     GREEN='\033[0;32m'
