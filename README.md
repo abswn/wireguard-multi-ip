@@ -9,8 +9,6 @@ PreDown = ip rule del from 10.0.0.0/24 table main
 
 If you do get locked out, stop the vpn using your server provider's console, kvm, rescue mode, etc. If that is not possible and vpn has not been set to auto start on boot, you can reboot using server provider's API or control panel to regain SSH access.
 
----
-
 ## Features
 
 - Support multiple public IPs
@@ -18,16 +16,12 @@ If you do get locked out, stop the vpn using your server provider's console, kvm
 - Client-to-client isolation enabled by default
 - Clean uninstallation (removes configs, NAT rules, and packages)
 
----
-
 ## Installation and Usage
 
 ```bash
 chmod +x wireguard_multi_ip_manager.sh
 sudo ./wireguard_multi_ip_manager.sh
 ```
-
----
 
 ## Client Configuration
 
@@ -45,7 +39,6 @@ Uncomment and edit these lines in the client config `[Interface]` section:
 
 Replace `10.0.0.0/24` with your real network's private IP or subnet.
 
----
 
 ## On the Client Side
 
@@ -80,8 +73,6 @@ sudo systemctl enable wg-quick@client
 sudo systemctl start|stop|status|restart|enable|disable wg-quick@client
 ```
 
----
-
 ## Starting System Services After VPN Is Up
 
 If you have a systemd service that should only run after VPN is active:
@@ -91,8 +82,6 @@ If you have a systemd service that should only run after VPN is active:
 After=wg-quick@client.service
 Requires=wg-quick@client.service
 ```
-
----
 
 ## License
 
