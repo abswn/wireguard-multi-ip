@@ -135,6 +135,13 @@ function initial_setup() {
         echo "✅ IP forwarding is already enabled."
     fi
 
+    # Allow all forwarded traffic to and from the wireguard interface
+    iptables -A FORWARD -i wg0 -j ACCEPT
+    iptables -A FORWARD -o wg0 -j ACCEPT
+    mkdir -p /etc/iptables
+    iptables-save > /etc/iptables/rules.v4
+    systemctl restart netfilter-persistent
+
     # Add the first public IP
     echo "--------------------------------------------------"
     echo "Detecting and adding the first public IP."
