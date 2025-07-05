@@ -298,9 +298,10 @@ function add_client() {
     fi
 
     echo "Please choose the public IP this client will connect to:"
-    mapfile -t lines < <(awk '{print $1}' "$IP_MAPPING_FILE")
-    select endpoint_ip in "${lines[@]}"; do
-        if [[ -n "$endpoint_ip" ]]; then
+    mapfile -t lines < <(awk '{print $1 " (" $2 ")"}' "$IP_MAPPING_FILE")
+    select endpoint_choice in "${lines[@]}"; do
+        if [[ -n "$endpoint_choice" ]]; then
+            endpoint_ip=$(echo "$endpoint_choice" | awk '{print $1}')
             break
         else
             echo "Invalid selection."
