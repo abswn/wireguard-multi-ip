@@ -136,8 +136,8 @@ function initial_setup() {
     fi
 
     # Allow all forwarded traffic to and from the wireguard interface
-    iptables -A FORWARD -i wg0 -j ACCEPT
-    iptables -A FORWARD -o wg0 -j ACCEPT
+    iptables -C FORWARD -i wg0 -j ACCEPT 2>/dev/null || iptables -A FORWARD -i wg0 -j ACCEPT
+    iptables -C FORWARD -o wg0 -j ACCEPT 2>/dev/null || iptables -A FORWARD -o wg0 -j ACCEPT
     mkdir -p /etc/iptables
     iptables-save > /etc/iptables/rules.v4
     systemctl restart netfilter-persistent
